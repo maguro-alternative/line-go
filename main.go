@@ -91,10 +91,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	signature := base64.StdEncoding.EncodeToString(validSignByte)
 
 	if xLineSignature != signature {
-		log.Printf("Invalid signature: %s = %s", xLineSignature, string(validSignByte))
+		log.Printf("Invalid signature: %s = %s", xLineSignature, signature)
 		http.Error(w, "invalid signature", http.StatusUnauthorized)
 		return
 	}
+	log.Printf("signature:%s = %s", xLineSignature, signature)
 
 	// Parse request
 	var lineResponses LineResponses
