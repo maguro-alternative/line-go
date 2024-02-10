@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -65,8 +67,8 @@ func main() {
 	}
 }
 
-
 func Handler(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -107,6 +109,36 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Do something with the request
 	for _, event := range lineResponses.Events {
 		log.Printf("Got message: %s", event.Message.Text)
+		contentUrl := fmt.Sprintf("https://api-data.line.me/v2/bot/message/%s/content", event.Message.ID)
+		req, err := http.NewRequest("GET", contentUrl, nil)
+		if err != nil {
+			log.Printf("Error: %s", err)
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+os.Getenv("LINE_ACCSESS_TOKEN"))
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("Error: %s", err)
+			continue
+		}
+		defer resp.Body.Close()
+		// Read the response
+		if _, err := io.Copy(&buf, resp.Body); err != nil {
+			log.Printf("Error: %s", err)
+			continue
+		}
+		f, err := os.Create("test.jpg")
+		if err != nil {
+			log.Printf("Error: %s", err)
+			continue
+		}
+		defer f.Close()
+		_, err = f.Write(buf.Bytes())
+		if err != nil {
+			log.Printf("Error: %s", err)
+			continue
+		}
 	}
 
 	// Respond to LINE
